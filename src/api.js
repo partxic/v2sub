@@ -36,6 +36,9 @@ api.get('/status', (req, res) => {
 import auth from './auth.js'
 api.use('/auth', auth)
 
+import source from './source.js'
+api.use('/source', source)
+
 import { createServer, get } from 'node:http'
 import { httpServerHandler } from 'cloudflare:node'
 const server = createServer(app)
