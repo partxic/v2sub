@@ -66,6 +66,7 @@ const saveSource = async () => {
 
         ElMessage.success(res.data)
         closeEditor()
+        await fetchSubNames()
     } catch (error) {
         ElMessage.error(error.response.data)
     } finally {

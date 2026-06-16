@@ -28,7 +28,7 @@ const handleClose = done => {
     <el-dialog :model-value="prop.show" title="源编辑器" width="90%" :before-close="handleClose" align-center>
         <el-form :model="prop.data" label-width="auto">
             <el-form-item label="名称">
-                <el-input v-model="prop.data.name" :disabled="prop.data.name !== ''" />
+                <el-input v-model="prop.data.name" />
             </el-form-item>
             <el-form-item label="地址">
                 <el-input v-model="prop.data.url" />
