@@ -84,6 +84,39 @@ sub.get('/get', async (req, res) => {
     return res.status(200).send(result.join('\n'))
 })
 
+sub.get('/check', async (req, res) => {
+    const trueSecret = await env.data.get('sub_secret')
+    if (typeof trueSecret !== 'string' || trueSecret === '') {
+        return res.status(500).send('订阅密钥未指定')
+    }
+
+    const { secret } = req.query
+    if (secret !== trueSecret) {
+        return res.status(403).send('密钥错误')
+    }
+
+    const keys = (await env.data.list()).keys
+    const subNames = keys.map(item => item.name).filter(item => item !== 'sub_secret')
+    if (subNames.length === 0) {
+        return res.status(500).send('未配置订阅')
+    }
+
+    const values = await env.data.get(subNames)
+    const subs = Object.fromEntries(values)
+
+    const promises = Object.entries(subs).map(([key, value]) => {
+        const name = key
+        const { url, exclude } = JSON.parse(value)
+        return limit(() => processItem(name, url, exclude))
+    })
+
+    const result = (await Promise.all(promises)).flat()
+    return res.status(200).json({
+        subs: subNames,
+        total_node: result.length
+    })
+})
+
 const subSecret = express.Router()
 sub.use('/secret', subSecret)
 
