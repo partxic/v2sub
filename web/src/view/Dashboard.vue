@@ -213,7 +213,7 @@ onMounted(() => {
             <el-button type="primary" :loading="loading" @click="fetchSubContent">读取内容</el-button>
             <span class="sub-url flex-1">{{ subUrl }}</span>
         </div>
-        <el-input v-model="checkerData" type="textarea" autosize resize="none" readonly />
+        <pre><code>{{ checkerData }}</code></pre>
     </div>
 </template>
 
@@ -236,6 +236,11 @@ onMounted(() => {
 }
 
 .sub-url {
+    overflow: auto;
+}
+
+pre {
+    margin: 0;
     overflow: auto;
 }
 </style>
