@@ -243,4 +243,8 @@ pre {
     margin: 0;
     overflow: auto;
 }
+
+code {
+    font-family: monospace;
+}
 </style>
