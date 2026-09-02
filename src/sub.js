@@ -49,7 +49,7 @@ const processItem = async (name, url, exclude) => {
         const decodedName = decodeURIComponent(rawName)
         const formatedName = `${name} - ${decodedName}`
 
-        return `${prefix.toString()}#${formatedName}`
+        return `${prefix.toString()}${formatedName}`
     }
 
     return nodes.filter(value => !isMatch(value)).map(item => format(item))
