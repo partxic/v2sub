@@ -53,10 +53,10 @@ const processItem = async (name, url, exclude) => {
             ;['allowInsecure', 'insecure', 'skip-cert-verify'].forEach(key => params.delete(key))
 
             const newSearch = params.toString()
-            return `${baseUrl}${newSearch ? '?' + newSearch : ''}${formatedName}`
+            return `${baseUrl}${newSearch ? '?' + newSearch : ''}#${formatedName}`
         }
 
-        return `${rawUrl}${formatedName}`
+        return `${rawUrl}#${formatedName}`
     }
 
     return nodes.filter(value => !isMatch(value)).map(item => format(item))
