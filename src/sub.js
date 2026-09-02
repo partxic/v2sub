@@ -42,13 +42,14 @@ const processItem = async (name, url, exclude) => {
     const format = node => {
         const idx = node.lastIndexOf('#')
 
-        const prefix = node.slice(0, idx + 1)
-        const rawName = node.slice(idx + 1)
+        const prefix = new URL(node.slice(0, idx + 1))
+        Array('allowInsecure', 'insecure', 'skip-cert-verify').forEach(key => prefix.searchParams.delete(key))
 
+        const rawName = node.slice(idx + 1)
         const decodedName = decodeURIComponent(rawName)
         const formatedName = `${name} - ${decodedName}`
 
-        return `${prefix}${formatedName}`
+        return `${prefix.toString()}#${formatedName}`
     }
 
     return nodes.filter(value => !isMatch(value)).map(item => format(item))
