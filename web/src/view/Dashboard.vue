@@ -30,6 +30,12 @@ const subUrl = computed(() => {
     return `${url.protocol}//${url.host}/api/sub/get?secret=${secret}`
 })
 
+const infoUrl = computed(() => {
+    const url = new URL(window.location.href)
+    const { secret } = subSecretData
+    return `${url.protocol}//${url.host}/api/sub/info?secret=${secret}`
+})
+
 const doLogout = async () => {
     try {
         loading.value = true
@@ -149,8 +155,7 @@ const setSubSecret = async () => {
 const fetchSubInfo = async () => {
     try {
         loading.value = true
-        const { secret } = subSecretData
-        const res = await axios.get(`/api/sub/info?secret=${secret}`)
+        const res = await axios.get(infoUrl.value)
         checkerData.value = JSON.stringify(res.data, null, 2)
     } catch (error) {
         ElMessage.error(error.response.data)
@@ -210,8 +215,11 @@ onMounted(() => {
         </div>
         <div class="container flex-center">
             <el-button type="primary" :loading="loading" @click="fetchSubInfo">读取信息</el-button>
+            <span class="url flex-1">{{ infoUrl }}</span>
+        </div>
+        <div class="container flex-center">
             <el-button type="primary" :loading="loading" @click="fetchSubContent">读取内容</el-button>
-            <span class="sub-url flex-1">{{ subUrl }}</span>
+            <span class="url flex-1">{{ subUrl }}</span>
         </div>
         <pre>{{ checkerData }}</pre>
     </div>
@@ -235,7 +243,7 @@ onMounted(() => {
     margin: 0;
 }
 
-.sub-url {
+.container .url {
     overflow: auto;
 }
 
