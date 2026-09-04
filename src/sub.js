@@ -52,6 +52,10 @@ const processItem = async (name, url, exclude) => {
             const params = new URLSearchParams(search)
             ;['allowInsecure', 'insecure', 'skip-cert-verify'].forEach(key => params.delete(key))
 
+            if (name.startsWith('CF') && !params.has('ech')) {
+                params.set('ech', 'cloudflare-ech.com+https://dns.alidns.com/dns-query')
+            }
+
             const newSearch = params.toString()
             return `${baseUrl}${newSearch ? '?' + newSearch : ''}#${formatedName}`
         }
