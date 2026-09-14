@@ -7,138 +7,137 @@ const env = getenv()
 import pLimit from 'p-limit'
 const limit = pLimit(3)
 
+const ECH_DOMAINS = ['cloudflare-ech.com', 'crypto.cloudflare.com', 'godotengine.org', 'www.britannica.com', 'www.prometheus.io', 'www.kyocera.com']
+const ECH_DNS = ['https://dns.alidns.com/dns-query', 'https://sm2.doh.pub/dns-query', 'https://doh.360.cn/dns-query', 'https://doh.onedns.net/dns-query']
+const INSECURE_PARAMS_REGEX = /([?&])(allowInsecure|insecure|skip-cert-verify)=[^&]*&?/g
+
 const randomECH = () => {
-    const ech = {
-        domain: ['cloudflare-ech.com', 'crypto.cloudflare.com', 'godotengine.org', 'www.britannica.com', 'www.prometheus.io', 'www.kyocera.com'],
-        dns: ['https://dns.alidns.com/dns-query', 'https://sm2.doh.pub/dns-query', 'https://doh.360.cn/dns-query', 'https://doh.onedns.net/dns-query']
+    const randomDomain = ECH_DOMAINS[Math.floor(Math.random() * ECH_DOMAINS.length)]
+    const randomDns = ECH_DNS[Math.floor(Math.random() * ECH_DNS.length)]
+    return `${randomDomain}+${randomDns}`
+}
+
+const decodeBase64 = str => {
+    try {
+        return typeof atob === 'function' ? decodeURIComponent(escape(atob(str.trim()))) : Buffer.from(str, 'base64').toString('utf-8')
+    } catch {
+        return ''
+    }
+}
+
+const processNode = (node, prefixName, excludes, isCF) => {
+    node = node.trim()
+    if (!node) return null
+
+    const idx = node.lastIndexOf('#')
+    const rawUrl = idx !== -1 ? node.slice(0, idx) : node
+    const rawName = idx !== -1 ? node.slice(idx + 1) : ''
+
+    let decodedName = rawName
+    try {
+        decodedName = decodeURIComponent(rawName)
+    } catch {}
+
+    if (excludes.length > 0 && excludes.some(item => decodedName.includes(item))) {
+        return null
     }
 
-    const randomDomain = ech.domain[Math.floor(Math.random() * ech.domain.length)]
-    const randomDns = ech.dns[Math.floor(Math.random() * ech.dns.length)]
+    const formatedName = `${prefixName} - ${decodedName}`
+    const queryIdx = rawUrl.indexOf('?')
 
-    return `${randomDomain}+${randomDns}`
+    if (queryIdx === -1) {
+        return `${rawUrl}#${formatedName}`
+    }
+
+    let [baseUrl, search] = [rawUrl.slice(0, queryIdx), rawUrl.slice(queryIdx + 1)]
+    search = search.replace(INSECURE_PARAMS_REGEX, '$1').replace(/[?&]$/, '')
+
+    if (isCF && !search.includes('ech=')) {
+        const echParam = `ech=${encodeURIComponent(randomECH())}`
+        search = search ? `${search}&${echParam}` : echParam
+    }
+
+    return `${baseUrl}${search ? '?' + search : ''}#${formatedName}`
 }
 
 const processItem = async (name, url, exclude) => {
     const res = await fetch(url, {
-        headers: {
-            'User-Agent': 'v2rayN/7.22.7'
-        }
+        headers: { 'User-Agent': 'v2rayN/7.22.7' }
     })
 
-    if (!res.ok) {
-        return []
+    if (!res.ok) return []
+
+    let text = await res.text()
+    if (!text.includes('://')) {
+        text = decodeBase64(text)
     }
 
-    const split = (text, splitter) => {
-        return text
-            .split(splitter)
-            .map(item => item.trim())
-            .filter(value => value !== '')
-    }
+    const excludes = exclude
+        ? exclude
+              .split(',')
+              .map(s => s.trim())
+              .filter(Boolean)
+        : []
 
-    const convert = text => {
-        return Buffer.from(text, 'base64').toString('utf-8')
-    }
+    const isCF = name.startsWith('CF')
+    const lines = text.split(/\r?\n/)
+    const result = []
 
-    const data = await res.text()
-    const nodes = data.includes('://') ? split(data, /\r?\n/) : split(convert(data), /\r?\n/)
-    const excludes = split(exclude, ',')
-
-    const isMatch = node => {
-        const rawName = node.split('#').pop()
-        const decodedName = decodeURIComponent(rawName)
-        return excludes.some(item => decodedName.includes(item))
-    }
-
-    const format = node => {
-        const idx = node.lastIndexOf('#')
-        const rawUrl = idx !== -1 ? node.slice(0, idx) : node
-        const rawName = idx !== -1 ? node.slice(idx + 1) : ''
-
-        const decodedName = decodeURIComponent(rawName)
-        const formatedName = `${name} - ${decodedName}`
-
-        const [baseUrl, search] = rawUrl.split('?')
-        if (search) {
-            const params = new URLSearchParams(search)
-            ;['allowInsecure', 'insecure', 'skip-cert-verify'].forEach(key => params.delete(key))
-
-            if (name.startsWith('CF') && !params.has('ech')) {
-                params.set('ech', randomECH())
-            }
-
-            const newSearch = params.toString()
-            return `${baseUrl}${newSearch ? '?' + newSearch : ''}#${formatedName}`
+    for (let i = 0; i < lines.length; i++) {
+        const processed = processNode(lines[i], name, excludes, isCF)
+        if (processed) {
+            result.push(processed)
         }
-
-        return `${rawUrl}#${formatedName}`
     }
 
-    return nodes.filter(value => !isMatch(value)).map(item => format(item))
+    return result
 }
 
-sub.get('/info', async (req, res) => {
+const fetchAllSubs = async () => {
     const trueSecret = await env.data.get('sub_secret')
     if (typeof trueSecret !== 'string' || trueSecret === '') {
-        return res.status(500).send('订阅密钥未指定')
-    }
-
-    const { secret } = req.query
-    if (secret !== trueSecret) {
-        return res.status(403).send('密钥错误')
+        return { error: '订阅密钥未指定', code: 500 }
     }
 
     const keys = (await env.data.list()).keys
     const subNames = keys.map(item => item.name).filter(item => item !== 'sub_secret')
     if (subNames.length === 0) {
-        return res.status(500).send('未配置订阅')
+        return { error: '未配置订阅', code: 500 }
     }
 
     const values = await env.data.get(subNames)
     const subs = Object.fromEntries(values)
 
     const promises = Object.entries(subs).map(([key, value]) => {
-        const name = key
         const { url, exclude } = JSON.parse(value)
-        return limit(() => processItem(name, url, exclude))
+        return limit(() => processItem(key, url, exclude))
     })
 
     const result = (await Promise.all(promises)).flat()
+    return { subNames, result, secret: trueSecret }
+}
+
+sub.get('/info', async (req, res) => {
+    const data = await fetchAllSubs()
+    if (data.error) return res.status(data.code).send(data.error)
+
+    const { secret } = req.query
+    if (secret !== data.secret) return res.status(403).send('密钥错误')
+
     return res.status(200).json({
-        subs: subNames,
-        total_node: result.length
+        subs: data.subNames,
+        total_node: data.result.length
     })
 })
 
 sub.get('/get', async (req, res) => {
-    const trueSecret = await env.data.get('sub_secret')
-    if (typeof trueSecret !== 'string' || trueSecret === '') {
-        return res.status(500).send('订阅密钥未指定')
-    }
+    const data = await fetchAllSubs()
+    if (data.error) return res.status(data.code).send(data.error)
 
     const { secret } = req.query
-    if (secret !== trueSecret) {
-        return res.status(403).send('密钥错误')
-    }
+    if (secret !== data.secret) return res.status(403).send('密钥错误')
 
-    const keys = (await env.data.list()).keys
-    const subNames = keys.map(item => item.name).filter(item => item !== 'sub_secret')
-    if (subNames.length === 0) {
-        return res.status(500).send('未配置订阅')
-    }
-
-    const values = await env.data.get(subNames)
-    const subs = Object.fromEntries(values)
-
-    const promises = Object.entries(subs).map(([key, value]) => {
-        const name = key
-        const { url, exclude } = JSON.parse(value)
-        return limit(() => processItem(name, url, exclude))
-    })
-
-    const result = (await Promise.all(promises)).flat()
-    return res.status(200).send(result.join('\n'))
+    return res.status(200).send(data.result.join('\n'))
 })
 
 const subSecret = express.Router()
