@@ -9,7 +9,7 @@ const limit = pLimit(3)
 
 const ECH_DOMAINS = ['cloudflare-ech.com', 'crypto.cloudflare.com', 'godotengine.org', 'www.britannica.com', 'www.prometheus.io', 'www.kyocera.com']
 const ECH_DNS = ['https://dns.alidns.com/dns-query', 'https://sm2.doh.pub/dns-query', 'https://doh.360.cn/dns-query', 'https://doh.onedns.net/dns-query']
-const INSECURE_PARAMS_REGEX = /([?&])(allowInsecure|insecure|skip-cert-verify)=[^&]*&?/g
+const INSECURE_PARAMS = ['allowInsecure', 'insecure', 'skip-cert-verify']
 
 const ALL_ECH_PAIRS = []
 for (const domain of ECH_DOMAINS) {
@@ -27,14 +27,14 @@ const shufflePairs = array => {
 
 shufflePairs(ALL_ECH_PAIRS)
 
-let currentIndex = 0
+let CURRENT_ECH_INDEX = 0
 const randomECH = () => {
-    if (currentIndex >= ALL_ECH_PAIRS.length) {
+    if (CURRENT_ECH_INDEX >= ALL_ECH_PAIRS.length) {
         shufflePairs(ALL_ECH_PAIRS)
-        currentIndex = 0
+        CURRENT_ECH_INDEX = 0
     }
 
-    return ALL_ECH_PAIRS[currentIndex++]
+    return ALL_ECH_PAIRS[CURRENT_ECH_INDEX++]
 }
 
 const decodeBase64 = str => {
@@ -69,15 +69,18 @@ const processNode = (node, prefixName, excludes, isCF) => {
         return `${rawUrl}#${formatedName}`
     }
 
-    let [baseUrl, search] = [rawUrl.slice(0, queryIdx), rawUrl.slice(queryIdx + 1)]
-    search = search.replace(INSECURE_PARAMS_REGEX, '$1').replace(/[?&]$/, '')
+    const baseUrl = rawUrl.slice(0, queryIdx)
+    const searchStr = rawUrl.slice(queryIdx + 1)
 
-    if (isCF && !search.includes('ech=')) {
-        const echParam = `ech=${encodeURIComponent(randomECH())}`
-        search = search ? `${search}&${echParam}` : echParam
+    const params = new URLSearchParams(searchStr)
+    INSECURE_PARAMS.forEach(param => params.delete(param))
+
+    if (isCF && !params.has('ech')) {
+        params.set('ech', randomECH())
     }
 
-    return `${baseUrl}${search ? '?' + search : ''}#${formatedName}`
+    const newSearch = params.toString()
+    return `${baseUrl}${newSearch ? '?' + newSearch : ''}#${formatedName}`
 }
 
 const processItem = async (name, url, exclude) => {
