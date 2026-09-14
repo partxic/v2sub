@@ -75,8 +75,14 @@ const processNode = (node, prefixName, excludes, isCF) => {
     const params = new URLSearchParams(searchStr)
     INSECURE_PARAMS.forEach(param => params.delete(param))
 
-    if (isCF && !params.has('ech')) {
-        params.set('ech', randomECH())
+    if (isCF) {
+        if (!params.has('fp')) {
+            params.set('fp', 'chrome')
+        }
+
+        if (!params.has('ech')) {
+            params.set('ech', randomECH())
+        }
     }
 
     const newSearch = params.toString()
