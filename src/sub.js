@@ -83,6 +83,10 @@ const processNode = (node, prefixName, excludes, isCF) => {
         if (!params.has('ech')) {
             params.set('ech', randomECH())
         }
+
+        if (!params.has('alpn')) {
+            params.set('alpn', 'h3,h2,http/1.1')
+        }
     }
 
     const newSearch = params.toString()
