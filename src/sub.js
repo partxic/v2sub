@@ -7,6 +7,18 @@ const env = getenv()
 import pLimit from 'p-limit'
 const limit = pLimit(3)
 
+const randomECH = () => {
+    const ech = {
+        domain: ['cloudflare-ech.com', 'crypto.cloudflare.com', 'godotengine.org', 'www.britannica.com', 'www.prometheus.io', 'www.kyocera.com'],
+        dns: ['https://dns.alidns.com/dns-query', 'https://sm2.doh.pub/dns-query', 'https://doh.360.cn/dns-query', 'https://doh.onedns.net/dns-query']
+    }
+
+    const randomDomain = ech.domain[Math.floor(Math.random() * ech.domain.length)]
+    const randomDns = ech.dns[Math.floor(Math.random() * ech.dns.length)]
+
+    return `${randomDomain}+${randomDns}`
+}
+
 const processItem = async (name, url, exclude) => {
     const res = await fetch(url, {
         headers: {
@@ -53,7 +65,7 @@ const processItem = async (name, url, exclude) => {
             ;['allowInsecure', 'insecure', 'skip-cert-verify'].forEach(key => params.delete(key))
 
             if (name.startsWith('CF') && !params.has('ech')) {
-                params.set('ech', 'cloudflare-ech.com+https://dns.alidns.com/dns-query')
+                params.set('ech', randomECH())
             }
 
             const newSearch = params.toString()
