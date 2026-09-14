@@ -11,10 +11,30 @@ const ECH_DOMAINS = ['cloudflare-ech.com', 'crypto.cloudflare.com', 'godotengine
 const ECH_DNS = ['https://dns.alidns.com/dns-query', 'https://sm2.doh.pub/dns-query', 'https://doh.360.cn/dns-query', 'https://doh.onedns.net/dns-query']
 const INSECURE_PARAMS_REGEX = /([?&])(allowInsecure|insecure|skip-cert-verify)=[^&]*&?/g
 
+const ALL_ECH_PAIRS = []
+for (const domain of ECH_DOMAINS) {
+    for (const dns of ECH_DNS) {
+        ALL_ECH_PAIRS.push(`${domain}+${dns}`)
+    }
+}
+
+const shufflePairs = array => {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1))
+        ;[array[i], array[j]] = [array[j], array[i]]
+    }
+}
+
+shufflePairs(ALL_ECH_PAIRS)
+
+let currentIndex = 0
 const randomECH = () => {
-    const randomDomain = ECH_DOMAINS[Math.floor(Math.random() * ECH_DOMAINS.length)]
-    const randomDns = ECH_DNS[Math.floor(Math.random() * ECH_DNS.length)]
-    return `${randomDomain}+${randomDns}`
+    if (currentIndex >= ALL_ECH_PAIRS.length) {
+        shufflePairs(ALL_ECH_PAIRS)
+        currentIndex = 0
+    }
+
+    return ALL_ECH_PAIRS[currentIndex++]
 }
 
 const decodeBase64 = str => {
