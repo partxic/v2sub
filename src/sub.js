@@ -8,7 +8,7 @@ import pLimit from 'p-limit'
 const limit = pLimit(3)
 
 const ECH_DOMAINS = ['cloudflare-ech.com', 'crypto.cloudflare.com', 'godotengine.org', 'www.britannica.com', 'www.prometheus.io', 'www.kyocera.com']
-const ECH_DNS = ['https://dns.alidns.com/dns-query', 'https://sm2.doh.pub/dns-query', 'https://doh.360.cn/dns-query', 'https://doh.onedns.net/dns-query']
+const ECH_DNS = ['https://sm2.doh.pub/dns-query', 'https://doh.360.cn/dns-query', 'https://doh.onedns.net/dns-query']
 const INSECURE_PARAMS = ['allowInsecure', 'insecure', 'skip-cert-verify']
 
 const ALL_ECH_PAIRS = []
