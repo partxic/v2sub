@@ -8,7 +8,7 @@ import pLimit from 'p-limit'
 const limit = pLimit(3)
 
 const ECH_DOMAINS = ['icook.hk', 'cm.edu.kg', 'godotengine.org', 'www.britannica.com', 'lido.fi']
-const ECH_DNS = ['https://dns.alidns.com/dns-query']
+const ECH_DNS = ['https://doh.360.cn/dns-query', 'https://doh.onedns.net/dns-query']
 const INSECURE_PARAMS = ['allowInsecure', 'insecure', 'skip-cert-verify']
 
 const ALL_ECH_PAIRS = []
