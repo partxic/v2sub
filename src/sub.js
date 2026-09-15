@@ -85,7 +85,7 @@ const processNode = (node, prefixName, excludes, isCF) => {
         }
 
         if (!params.has('alpn')) {
-            params.set('alpn', 'h3,h2,http/1.1')
+            params.set('alpn', 'h2,http/1.1')
         }
     }
 
