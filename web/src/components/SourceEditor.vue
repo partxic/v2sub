@@ -31,7 +31,7 @@ const handleClose = done => {
                 <el-input v-model="prop.data.name" />
             </el-form-item>
             <el-form-item label="地址">
-                <el-input v-model="prop.data.url" />
+                <el-input v-model="prop.data.url" type="textarea" autosize />
             </el-form-item>
             <el-form-item label="排除">
                 <el-input v-model="prop.data.exclude" placeholder="以 ',' 分隔" />
