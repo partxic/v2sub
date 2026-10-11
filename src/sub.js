@@ -7,36 +7,6 @@ const env = getenv()
 import pLimit from 'p-limit'
 const limit = pLimit(3)
 
-const ECH_DOMAINS = ['cloudflare-ech.com']
-const ECH_DNS = ['https://dns.alidns.com/dns-query']
-const INSECURE_PARAMS = ['allowInsecure', 'insecure', 'skip-cert-verify']
-
-const ALL_ECH_PAIRS = []
-for (const domain of ECH_DOMAINS) {
-    for (const dns of ECH_DNS) {
-        ALL_ECH_PAIRS.push(`${domain}+${dns}`)
-    }
-}
-
-const shufflePairs = array => {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1))
-        ;[array[i], array[j]] = [array[j], array[i]]
-    }
-}
-
-shufflePairs(ALL_ECH_PAIRS)
-
-let CURRENT_ECH_INDEX = 0
-const randomECH = () => {
-    if (CURRENT_ECH_INDEX >= ALL_ECH_PAIRS.length) {
-        shufflePairs(ALL_ECH_PAIRS)
-        CURRENT_ECH_INDEX = 0
-    }
-
-    return ALL_ECH_PAIRS[CURRENT_ECH_INDEX++]
-}
-
 const decodeBase64 = str => {
     try {
         return typeof atob === 'function' ? decodeURIComponent(escape(atob(str.trim()))) : Buffer.from(str, 'base64').toString('utf-8')
@@ -45,7 +15,9 @@ const decodeBase64 = str => {
     }
 }
 
-const processNode = (node, prefixName, excludes, isCF) => {
+const INSECURE_PARAMS = ['allowInsecure', 'insecure', 'skip-cert-verify']
+
+const processNode = (node, prefixName, excludes) => {
     node = node.trim()
     if (!node) return null
 
@@ -75,20 +47,6 @@ const processNode = (node, prefixName, excludes, isCF) => {
     const params = new URLSearchParams(searchStr)
     INSECURE_PARAMS.forEach(param => params.delete(param))
 
-    if (isCF) {
-        if (!params.has('fp')) {
-            params.set('fp', 'chrome')
-        }
-
-        if (!params.has('ech')) {
-            params.set('ech', randomECH())
-        }
-
-        if (!params.has('alpn')) {
-            params.set('alpn', 'h2')
-        }
-    }
-
     const newSearch = params.toString()
     return `${baseUrl}${newSearch ? '?' + newSearch : ''}#${formatedName}`
 }
@@ -112,12 +70,11 @@ const processItem = async (name, url, exclude) => {
               .filter(Boolean)
         : []
 
-    const isCF = name.startsWith('CF')
     const lines = text.split(/\r?\n/)
     const result = []
 
     for (let i = 0; i < lines.length; i++) {
-        const processed = processNode(lines[i], name, excludes, isCF)
+        const processed = processNode(lines[i], name, excludes)
         if (processed) {
             result.push(processed)
         }
